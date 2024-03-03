@@ -91,6 +91,11 @@ a {
   text-decoration: none;
 }
 
+.center {
+  margin: auto;
+  text-align: center;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
