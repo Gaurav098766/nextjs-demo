@@ -1,26 +1,58 @@
-import { getFeaturedEvents } from "@/helpers/api-utils";
 import { useRouter } from "next/router";
 import EventList from "@/components/events/event-list";
 import ResultsTitle from "@/components/events/result-title";
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Button from "@/components/ui/button";
 import ErrorAlert from "@/components/ui/error-alert";
+import useSWR from "swr";
 
-export default function FilteredEventsPage(props) {
+export default function FilteredEventsPage() {
+  const [loadedevents, setLoadedEvents] = useState();
   const router = useRouter();
-  // const filterData = router.query.slug;
 
-  // if (!filterData) {
-  //   return <p className="center">Loading...</p>;
-  // }
+  const filterData = router.query.slug;
 
-  // const filterYear = filterData[0];
-  // const filterMonth = filterData[1];
+  const { data, error } = useSWR(
+    "https://fir-cfd73-default-rtdb.firebaseio.com/events.json",
+    (url) => fetch(url).then((r) => r.json())
+  );
 
-  // const numYear = +filterYear;
-  // const numMonth = +filterMonth;
+  if (error) {
+    console.log(error);
+  }
 
-  if (props.hasError) {
+  useEffect(() => {
+    if (data) {
+      const events = [];
+      for (const key in data) {
+        events.push({
+          id: key,
+          ...data[key],
+        });
+        setLoadedEvents(events);
+      }
+    }
+  }, [data]);
+
+  if (!loadedevents) {
+    return <p className="center">Loading...</p>;
+  }
+
+  const filterYear = filterData[0];
+  const filterMonth = filterData[1];
+
+  const numYear = +filterYear;
+  const numMonth = +filterMonth;
+
+  if (
+    isNaN(numMonth) ||
+    isNaN(numYear) ||
+    numYear > 2030 ||
+    numYear < 2021 ||
+    numMonth < 1 ||
+    numMonth > 12 ||
+    error
+  ) {
     return (
       <Fragment>
         <ErrorAlert>
@@ -33,7 +65,13 @@ export default function FilteredEventsPage(props) {
     );
   }
 
-  const filteredEvents = props.events;
+  const filteredEvents = loadedevents.filter((event) => {
+    const eventDate = new Date(event.date);
+    return (
+      eventDate.getFullYear() === numYear &&
+      eventDate.getMonth() === numMonth - 1
+    );
+  });
 
   if (!filteredEvents || filteredEvents.length === 0) {
     return (
@@ -48,7 +86,7 @@ export default function FilteredEventsPage(props) {
     );
   }
 
-  const date = new Date(props.date.year, props.date.month - 1);
+  const date = new Date(numYear, numMonth - 1);
 
   return (
     <Fragment>
@@ -58,44 +96,44 @@ export default function FilteredEventsPage(props) {
   );
 }
 
-export async function getServerSideProps(context) {
-  const { params } = context;
-  const filterDate = params.slug;
+// export async function getServerSideProps(context) {
+//   const { params } = context;
+//   const filterDate = params.slug;
 
-  const filterYear = filterDate[0];
-  const filterMonth = filterDate[1];
+//   const filterYear = filterDate[0];
+//   const filterMonth = filterDate[1];
 
-  const numYear = +filterYear;
-  const numMonth = +filterMonth;
+//   const numYear = +filterYear;
+//   const numMonth = +filterMonth;
 
-  if (
-    isNaN(numMonth) ||
-    isNaN(numYear) ||
-    numYear > 2030 ||
-    numYear < 2021 ||
-    numMonth < 1 ||
-    numMonth > 12
-  ) {
-    return {
-      props: {
-        hasError: true,
-      },
-      // notFound: true,
-    };
-  }
+//   if (
+//     isNaN(numMonth) ||
+//     isNaN(numYear) ||
+//     numYear > 2030 ||
+//     numYear < 2021 ||
+//     numMonth < 1 ||
+//     numMonth > 12
+//   ) {
+//     return {
+//       props: {
+//         hasError: true,
+//       },
+//       // notFound: true,
+//     };
+//   }
 
-  const filteredEvents = await getFeaturedEvents({
-    year: numYear,
-    month: numMonth,
-  });
+//   const filteredEvents = await getFeaturedEvents({
+//     year: numYear,
+//     month: numMonth,
+//   });
 
-  return {
-    props: {
-      events: filteredEvents,
-      date: {
-        year: numYear,
-        month: numMonth,
-      },
-    },
-  };
-}
+//   return {
+//     props: {
+//       events: filteredEvents,
+//       date: {
+//         year: numYear,
+//         month: numMonth,
+//       },
+//     },
+//   };
+// }
